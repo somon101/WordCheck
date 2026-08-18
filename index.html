@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>WordCheck — проверка слов на любом языке</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+
+<!-- PWA (Android/web): манифест, иконка, тема. В Electron-версии эти теги
+     просто ни на что не влияют — desktop-путь их не использует. -->
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<meta name="theme-color" content="#150f2b" />
+</head>
+<body>
+
+<!-- Фоновые декоративные градиентные пятна -->
+<div class="bg-glow bg-glow--one" aria-hidden="true"></div>
+<div class="bg-glow bg-glow--two" aria-hidden="true"></div>
+
+<main id="app">
+
+  <!-- ============ ГЛАВНЫЙ ЭКРАН: МОИ СЛОВАРИ ============ -->
+  <section id="screen-dictionaries" class="screen screen--home setup-active setup-wide" aria-hidden="false">
+    <div class="home-content">
+      <p class="eyebrow">Проверка слов · любой язык</p>
+      <h1 class="brand">WordCheck</h1>
+      <p class="subtitle">Выбери словарь или создай новый</p>
+
+      <div class="card-panel glass-card" id="dictionaries-panel">
+        <span class="card-panel__count" id="dictionaries-count-label">Словарей: 0</span>
+        <div class="card-panel__actions">
+          <button type="button" class="btn btn--primary card-panel__btn" id="btn-create-dictionary">+ Создать словарь</button>
+        </div>
+      </div>
+
+      <div class="card-grid" id="dictionaries-grid"></div>
+
+      <p class="setup-empty-state" id="dictionaries-empty-state" hidden>
+        Пока нет ни одного словаря. Нажмите «+ Создать словарь».
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ ЭКРАН ВНУТРИ СЛОВАРЯ ============ -->
+  <!-- id остался "screen-home" по историческим причинам, но роль экрана —
+       "внутри выбранного словаря", а не общий главный экран приложения. -->
+  <section id="screen-home" class="screen screen--home" aria-hidden="true" hidden>
+    <div class="home-content">
+
+      <!-- Меню словаря: создать карточки / список / тестирование -->
+      <div class="setup-view" id="setup-view-choice">
+        <div class="setup-view__header">
+          <button type="button" class="icon-btn" id="dictionary-back-btn" aria-label="К списку словарей">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <h2 class="setup-heading" id="dictionary-detail-title">Словарь</h2>
+          <span class="test-header__spacer" aria-hidden="true"></span>
+        </div>
+        <p class="dictionary-detail-langs" id="dictionary-detail-langs"></p>
+
+        <div class="setup-options">
+          <button type="button" class="glass-card setup-option" id="setup-option-create">
+            <span class="setup-option__title">Создать карточки</span>
+            <span class="setup-option__desc">Быстрый последовательный ввод слов и переводов</span>
+          </button>
+          <button type="button" class="glass-card setup-option" id="setup-option-list">
+            <span class="setup-option__title">Список карточек</span>
+            <span class="setup-option__desc">Поиск, редактирование, импорт и экспорт</span>
+          </button>
+          <button type="button" class="glass-card setup-option" id="setup-option-start-test" disabled>
+            <span class="setup-option__title">Начать тестирование</span>
+            <span class="setup-option__desc">Запустить проверку по уже добавленным карточкам</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Быстрое последовательное создание карточек -->
+      <div class="setup-view" id="setup-view-quick-create" hidden>
+        <div class="setup-view__header">
+          <button type="button" class="icon-btn" id="setup-quick-back-choice" aria-label="Назад к меню словаря">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <h2 class="setup-heading">Создать карточки</h2>
+          <span class="test-header__spacer" aria-hidden="true"></span>
+        </div>
+
+        <div class="glass-card quick-create-card">
+          <span class="quick-create-card__counter" id="quick-create-counter">Карточка №1</span>
+
+          <div class="quick-create-field">
+            <label class="card-row__label" for="quick-word">Слово</label>
+            <input type="text" id="quick-word" class="card-row__input" placeholder="cat" autocomplete="off" />
+          </div>
+
+          <div class="quick-create-field">
+            <label class="card-row__label" for="quick-translation">Перевод</label>
+            <input type="text" id="quick-translation" class="card-row__input" placeholder="кошка" autocomplete="off" />
+          </div>
+
+          <p class="setup-error" id="quick-create-error" hidden></p>
+        </div>
+
+        <div class="quick-create-actions">
+          <button type="button" class="btn btn--ghost" id="btn-quick-back">Назад</button>
+          <button type="button" class="btn btn--primary" id="btn-quick-next">Далее</button>
+        </div>
+
+        <div class="quick-create-finish" id="quick-create-finish" hidden>
+          <button type="button" class="btn btn--ghost" id="btn-quick-to-list">К списку карточек</button>
+          <button type="button" class="btn btn--ghost" id="btn-quick-to-home">Готово</button>
+        </div>
+      </div>
+
+      <!-- Список карточек: поиск, импорт/экспорт, управление -->
+      <div class="setup-view" id="setup-view-list" hidden>
+        <div class="setup-view__header">
+          <button type="button" class="icon-btn" id="setup-list-back" aria-label="Назад к меню словаря">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <h2 class="setup-heading">Список карточек</h2>
+          <span class="test-header__spacer" aria-hidden="true"></span>
+        </div>
+
+        <!-- Закреплённая панель управления -->
+        <div class="card-panel glass-card" id="card-panel">
+          <span class="card-panel__count" id="card-count-label">Всего слов: 0</span>
+          <div class="card-panel__search">
+            <input type="text" id="card-search-input" placeholder="Поиск слова..." autocomplete="off" />
+          </div>
+          <div class="card-panel__actions">
+            <button type="button" class="btn btn--ghost card-panel__btn" id="btn-panel-import">Импорт</button>
+            <button type="button" class="btn btn--ghost card-panel__btn" id="btn-panel-export">Экспорт ⌄</button>
+          </div>
+          <input type="file" id="panel-import-file-input" accept=".txt,.json,text/plain,application/json" hidden />
+
+          <div class="word-card-item__dropdown export-dropdown" id="export-dropdown" hidden>
+            <button type="button" id="export-as-txt">Экспортировать в TXT</button>
+            <button type="button" id="export-as-json">Экспортировать в JSON</button>
+          </div>
+        </div>
+
+        <div class="import-report" id="panel-import-report" hidden>
+          <div class="import-report__summary" id="panel-import-report-summary"></div>
+          <ul class="import-report__errors" id="panel-import-report-errors"></ul>
+        </div>
+
+        <div class="card-grid" id="card-grid"></div>
+
+        <p class="setup-empty-state" id="card-empty-state" hidden></p>
+
+        <button type="button" class="btn btn--ghost setup-add-btn" id="btn-add-card" hidden>+ Добавить карточку</button>
+
+        <button type="button" class="btn btn--primary btn--large" id="btn-start-create" hidden>Начать проверку</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ЭКРАН ПРОВЕРКИ ============ -->
+  <section id="screen-test" class="screen screen--test" aria-hidden="true" hidden>
+    <header class="test-header">
+      <button id="btn-back" class="icon-btn" type="button" aria-label="Вернуться к меню словаря">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="test-header__brand" id="test-header-dictionary-name">WordCheck</span>
+      <span class="test-header__spacer" aria-hidden="true"></span>
+    </header>
+
+    <div class="progress-wrap">
+      <div class="progress-count" id="progress-count" aria-live="polite">1 / 100</div>
+      <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="1" id="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <div class="word-stage">
+      <div class="glass-card word-card" id="word-card">
+        <span class="word-card__label">Слово</span>
+        <h2 class="word-card__word" id="word-text">environment</h2>
+      </div>
+    </div>
+
+    <div class="answer-buttons">
+      <button class="answer-btn answer-btn--known" type="button" data-answer="known" aria-label="Знаю это слово">
+        <span class="answer-btn__dot" aria-hidden="true"></span>
+        <span class="answer-btn__label">Знаю</span>
+      </button>
+      <button class="answer-btn answer-btn--maybe" type="button" data-answer="maybe" aria-label="Наверно знаю это слово">
+        <span class="answer-btn__dot" aria-hidden="true"></span>
+        <span class="answer-btn__label">Наверно знаю</span>
+      </button>
+      <button class="answer-btn answer-btn--unknown" type="button" data-answer="unknown" aria-label="Не знаю это слово">
+        <span class="answer-btn__dot" aria-hidden="true"></span>
+        <span class="answer-btn__label">Не знаю</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ============ ЭКРАН РЕЗУЛЬТАТА ============ -->
+  <section id="screen-result" class="screen screen--result" aria-hidden="true" hidden>
+    <div class="result-content">
+      <p class="eyebrow">Готово</p>
+      <h1 class="result-title">Проверка завершена</h1>
+
+      <div class="glass-card score-card">
+        <div class="score-card__percent" id="result-percent">64%</div>
+        <p class="score-card__caption" id="result-caption">слов ты знаешь</p>
+      </div>
+
+      <div class="glass-card stats-card">
+        <div class="stat-row">
+          <div class="stat-row__left">
+            <span class="stat-dot stat-dot--known" aria-hidden="true"></span>
+            <span>Знаю</span>
+          </div>
+          <div class="stat-row__right">
+            <span class="stat-row__value" id="stat-known-count">64</span>
+            <span class="stat-row__percent" id="stat-known-percent">64%</span>
+          </div>
+        </div>
+        <div class="stat-bar-track"><div class="stat-bar-fill stat-bar-fill--known" id="bar-known"></div></div>
+
+        <div class="stat-row">
+          <div class="stat-row__left">
+            <span class="stat-dot stat-dot--maybe" aria-hidden="true"></span>
+            <span>Наверно знаю</span>
+          </div>
+          <div class="stat-row__right">
+            <span class="stat-row__value" id="stat-maybe-count">21</span>
+            <span class="stat-row__percent" id="stat-maybe-percent">21%</span>
+          </div>
+        </div>
+        <div class="stat-bar-track"><div class="stat-bar-fill stat-bar-fill--maybe" id="bar-maybe"></div></div>
+
+        <div class="stat-row">
+          <div class="stat-row__left">
+            <span class="stat-dot stat-dot--unknown" aria-hidden="true"></span>
+            <span>Не знаю</span>
+          </div>
+          <div class="stat-row__right">
+            <span class="stat-row__value" id="stat-unknown-count">15</span>
+            <span class="stat-row__percent" id="stat-unknown-percent">15%</span>
+          </div>
+        </div>
+        <div class="stat-bar-track"><div class="stat-bar-fill stat-bar-fill--unknown" id="bar-unknown"></div></div>
+
+        <div class="intro-card__divider" aria-hidden="true"></div>
+        <p class="total-line">Всего слов: <span id="stat-total">100</span></p>
+      </div>
+
+      <div class="result-actions">
+        <button id="btn-restart" class="btn btn--primary btn--large" type="button">Пройти снова</button>
+        <button id="btn-home" class="btn btn--ghost" type="button">К меню словаря</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Модальное подтверждение выхода из незавершённой проверки -->
+<div id="confirm-modal" class="modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+  <div class="modal__backdrop" id="modal-backdrop"></div>
+  <div class="glass-card modal__box">
+    <h3 id="confirm-title" class="modal__title">Прервать проверку?</h3>
+    <p class="modal__text">Текущий прогресс будет потерян.</p>
+    <div class="modal__actions">
+      <button id="modal-cancel" class="btn btn--ghost" type="button">Продолжить</button>
+      <button id="modal-confirm" class="btn btn--danger" type="button">Выйти</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно добавления/редактирования карточки (экран "Список карточек") -->
+<div id="card-edit-modal" class="modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="card-edit-title">
+  <div class="modal__backdrop" id="card-edit-modal-backdrop"></div>
+  <div class="glass-card modal__box">
+    <h3 id="card-edit-title" class="modal__title">Добавить карточку</h3>
+    <div class="card-edit-field">
+      <label class="card-row__label" for="card-edit-word">Слово</label>
+      <input type="text" id="card-edit-word" class="card-row__input" placeholder="cat" autocomplete="off" />
+    </div>
+    <div class="card-edit-field">
+      <label class="card-row__label" for="card-edit-translation">Перевод</label>
+      <input type="text" id="card-edit-translation" class="card-row__input" placeholder="кошка" autocomplete="off" />
+    </div>
+    <p class="setup-error" id="card-edit-error" hidden></p>
+    <div class="modal__actions">
+      <button id="card-edit-cancel" class="btn btn--ghost" type="button">Отмена</button>
+      <button id="card-edit-save" class="btn btn--primary" type="button">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно подтверждения удаления карточки -->
+<div id="card-delete-modal" class="modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="card-delete-title">
+  <div class="modal__backdrop" id="card-delete-modal-backdrop"></div>
+  <div class="glass-card modal__box">
+    <h3 id="card-delete-title" class="modal__title">Удалить карточку?</h3>
+    <p class="modal__text" id="card-delete-preview"></p>
+    <div class="modal__actions">
+      <button id="card-delete-cancel" class="btn btn--ghost" type="button">Отмена</button>
+      <button id="card-delete-confirm" class="btn btn--danger" type="button">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно создания словаря -->
+<div id="dictionary-create-modal" class="modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="dictionary-create-title">
+  <div class="modal__backdrop" id="dictionary-create-modal-backdrop"></div>
+  <div class="glass-card modal__box">
+    <h3 id="dictionary-create-title" class="modal__title">Новый словарь</h3>
+    <div class="card-edit-field">
+      <label class="card-row__label" for="dict-create-name">Название блока</label>
+      <input type="text" id="dict-create-name" class="card-row__input" placeholder="Английский" autocomplete="off" />
+    </div>
+    <div class="card-edit-field">
+      <label class="card-row__label" for="dict-create-source">Язык исходных слов</label>
+      <input type="text" id="dict-create-source" class="card-row__input" placeholder="English" autocomplete="off" />
+    </div>
+    <div class="card-edit-field">
+      <label class="card-row__label" for="dict-create-target">Язык перевода</label>
+      <input type="text" id="dict-create-target" class="card-row__input" placeholder="Русский" autocomplete="off" />
+    </div>
+    <p class="setup-error" id="dict-create-error" hidden></p>
+    <div class="modal__actions">
+      <button id="dict-create-cancel" class="btn btn--ghost" type="button">Отмена</button>
+      <button id="dict-create-save" class="btn btn--primary" type="button">Создать</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно подтверждения удаления словаря -->
+<div id="dictionary-delete-modal" class="modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="dictionary-delete-title">
+  <div class="modal__backdrop" id="dictionary-delete-modal-backdrop"></div>
+  <div class="glass-card modal__box">
+    <h3 id="dictionary-delete-title" class="modal__title">Удалить словарь?</h3>
+    <p class="modal__text" id="dictionary-delete-preview">Все слова и статистика этого словаря будут удалены безвозвратно.</p>
+    <div class="modal__actions">
+      <button id="dictionary-delete-cancel" class="btn btn--ghost" type="button">Отмена</button>
+      <button id="dictionary-delete-confirm" class="btn btn--danger" type="button">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<script src="db-web.js"></script>
+<script src="script.js"></script>
+<script src="setup.js"></script>
+
+<!-- Регистрация service worker — только для web/PWA (Android и т.п.).
+     Electron грузит страницу через file://, где service worker не
+     поддерживается вовсе, поэтому проверка протокола не даёт коду
+     пытаться зарегистрироваться там, где это в принципе невозможно. -->
+<script>
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch((err) => {
+        console.error("Не удалось зарегистрировать service worker:", err);
+      });
+    });
+  }
+</script>
+</body>
+</html>

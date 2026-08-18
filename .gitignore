@@ -1,0 +1,5 @@
+node_modules/
+electron-cache/
+.claude/
+dist/
+*.log

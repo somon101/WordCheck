@@ -1,0 +1,39 @@
+{
+  "name": "wordcheck",
+  "version": "1.0.0",
+  "description": "WordCheck — проверка слов на любом языке, с постоянным хранением в SQLite (sql.js)",
+  "main": "electron/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "build": {
+    "appId": "com.wordcheck.app",
+    "productName": "WordCheck",
+    "files": [
+      "index.html",
+      "style.css",
+      "script.js",
+      "setup.js",
+      "electron/**/*",
+      "node_modules/sql.js/dist/sql-wasm.wasm",
+      "!electron/**/*.map"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "sql.js": "^1.11.0"
+  }
+}
